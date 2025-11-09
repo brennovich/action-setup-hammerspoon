@@ -1,0 +1,67 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  acceptance-basic-setup:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, macos-13, macos-14]
+    steps:
+      - id: checkout
+        uses: actions/checkout@v4
+      - id: setup-hammerspoon
+        uses: ./
+      - id: verify-cli
+        run: hs -c "print('Basic setup works')"
+      - id: verify-config
+        run: test -f ~/.hammerspoon/init.lua
+      - id: verify-running
+        run: pgrep -x Hammerspoon
+
+  acceptance-full-setup:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, macos-13, macos-14]
+    steps:
+      - id: checkout
+        uses: actions/checkout@v4
+      - id: setup-hammerspoon
+        uses: ./
+        with:
+          accessibility-permissions: true
+      - id: verify-cli
+        run: hs -c "print('Full setup works')"
+      - id: verify-accessibility
+        run: hs -c "print(hs.accessibilityState())"
+      - id: verify-running
+        run: pgrep -x Hammerspoon
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [acceptance-basic-setup, acceptance-full-setup]
+    steps:
+      - id: checkout
+        uses: actions/checkout@v5
+      - id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          token: ${{ github.token }}
+          patchAll: true
+      - id: release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git tag ${{ steps.semver.outputs.next }} && git push origin ${{ steps.semver.outputs.next }}
+          gh release create ${{ steps.semver.outputs.next }} --generate-notes
+      - id: publish
+        uses: actions/publish-action@v0.3.0
+        with:
+          source-tag: ${{ steps.semver.outputs.next }}
