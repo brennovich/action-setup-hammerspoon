@@ -1,0 +1,47 @@
+name: 'Setup Hammerspoon'
+description: 'Install and configure Hammerspoon for macOS CI environments'
+branding:
+  icon: 'terminal'
+  color: 'gray-dark'
+
+inputs:
+  accessibility-permissions:
+    description: 'Grant accessibility permissions via TCC database'
+    required: false
+    default: 'false'
+  start-hammerspoon:
+    description: 'Start Hammerspoon application after installation'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - id: install-hammerspoon
+      shell: bash
+      run: brew install hammerspoon --cask --no-quarantine
+
+    - id: enable-cli
+      shell: bash
+      run: |
+        mkdir -p ~/.hammerspoon
+        echo "hs.ipc.cliInstall()" > ~/.hammerspoon/init.lua
+
+    - id: grant-permissions
+      if: inputs.accessibility-permissions == 'true'
+      shell: bash
+      run: |
+        brew install tccutil
+        sudo tccutil --insert /Applications/Hammerspoon.app/Contents/MacOS/Hammerspoon
+        sudo tccutil --enable /Applications/Hammerspoon.app/Contents/MacOS/Hammerspoon
+        sudo tccutil --insert com.apple.Terminal
+        sudo tccutil --enable com.apple.Terminal
+        sleep 2
+        sudo tccutil --list | grep -q "Hammerspoon" || exit 1
+
+    - id: start-hammerspoon
+      if: inputs.start-hammerspoon == 'true'
+      shell: bash
+      run: |
+        /Applications/Hammerspoon.app/Contents/MacOS/Hammerspoon &
+        sleep 3
