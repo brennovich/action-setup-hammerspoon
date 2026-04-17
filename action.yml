@@ -21,7 +21,7 @@ runs:
       shell: bash
       run: |
         brew install hammerspoon --cask
-        sudo xattr -d com.apple.quarantine /Applications/Hammerspoon.app
+        sudo xattr -d com.apple.quarantine /Applications/Hammerspoon.app || true
 
     - id: enable-cli
       shell: bash
