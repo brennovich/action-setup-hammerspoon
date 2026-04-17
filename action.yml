@@ -19,7 +19,9 @@ runs:
   steps:
     - id: install-hammerspoon
       shell: bash
-      run: brew install hammerspoon --cask --no-quarantine
+      run: |
+        brew install hammerspoon --cask
+        sudo xattr -d com.apple.quarantine /Applications/Hammerspoon.app
 
     - id: enable-cli
       shell: bash
